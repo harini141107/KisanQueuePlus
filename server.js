@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path'); // Core Node module to handle file paths
 require('dotenv').config();
 
 const app = express();
@@ -16,9 +17,10 @@ let slots = [
     { slot_id: 2, time: "11:00 AM", max_farmers: 2, booked_count: 0, avg_service_time_min: 10 }
 ];
 
-// Base test route
+// --- Serve Frontend Dashboard ---
+// This tells our server: "When someone visits the home URL, send them the index.html file!"
 app.get('/', (req, res) => {
-    res.json({ message: "KisanQueue+ Backend API is running!" });
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // --- ROUTE 1: Farmer Registration + Mock OTP ---
@@ -112,14 +114,13 @@ app.get('/api/queue-status/:farmerId', (req, res) => {
 // --- ROUTE 5: Update Queue/Procurement Status (Admin Bypass) ---
 app.put('/api/update-status/:farmerId', (req, res) => {
     const farmerId = parseInt(req.params.farmerId);
-    const { status } = req.body; // Status values: 'booked', 'waiting', 'arrived', 'in_progress', 'completed'
+    const { status } = req.body;
 
     const entry = queueEntries.find(e => e.farmer_id === farmerId);
     if (!entry) return res.status(404).json({ error: "Queue entry not found." });
 
     entry.status = status;
 
-    // Shift positions up if a farmer finishes their delivery
     if (status === 'completed') {
         queueEntries.forEach(e => {
             if (e.slot_id === entry.slot_id && e.queue_position > entry.queue_position) {
